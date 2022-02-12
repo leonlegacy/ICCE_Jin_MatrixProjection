@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -52,24 +51,6 @@ namespace Leap.Unity {
     #endregion
 
     #region Inspector
-    
-    public enum TrackingOptimizationMode
-    {
-      Desktop,
-      ScreenTop,
-      HMD
-    }
-
-    [Tooltip("[Service must be >= 4.9.2!] " +
-     "Which tracking mode to request that the service optimize for. " +
-     "(Use the LeapXRServiceProvider for HMD Mode instead of this option!)")]
-    [SerializeField]
-    [EditTimeOnly]
-    private TrackingOptimizationMode _trackingOptimization = TrackingOptimizationMode.Desktop;
-
-    [Tooltip("Enable to prevent any changes to tracking mode, including during initialization. The mode the service is currently set to will be retained.")]
-    [SerializeField]
-    private bool _preventChangingTrackingMode;
 
     public enum InteractionVolumeVisualization {
       None,
@@ -117,11 +98,6 @@ namespace Leap.Unity {
 #endif
     [SerializeField]
     protected bool _workerThreadProfiling = false;
-
-    [Tooltip("Which Leap Service API Endpoint to connect to.  This is configured on the service with the 'api_namespace' argument.")]
-    [SerializeField]
-    [EditTimeOnly]
-    protected string _serverNameSpace = "Leap Service";
 
     #endregion
 
@@ -200,8 +176,7 @@ namespace Leap.Unity {
       = new Dictionary<TestHandFactory.TestHandPose, Hand>();
     private Hand _editTimeLeftHand {
       get {
-        Hand cachedHand = null;
-        if (_cachedLeftHands.TryGetValue(editTimePose, out cachedHand)) {
+        if (_cachedLeftHands.TryGetValue(editTimePose, out Hand cachedHand)) {
           return cachedHand;
         }
         else {
@@ -216,8 +191,7 @@ namespace Leap.Unity {
       = new Dictionary<TestHandFactory.TestHandPose, Hand>();
     private Hand _editTimeRightHand {
       get {
-        Hand cachedHand = null;
-        if (_cachedRightHands.TryGetValue(editTimePose, out cachedHand)) {
+        if (_cachedRightHands.TryGetValue(editTimePose, out Hand cachedHand)) {
           return cachedHand;
         }
         else {
@@ -462,66 +436,6 @@ namespace Leap.Unity {
       leapXRServiceProvider._physicsExtrapolationTime = _physicsExtrapolationTime;
       leapXRServiceProvider._workerThreadProfiling = _workerThreadProfiling;
     }
-    
-    /// <summary>
-    /// Triggers a coroutine that sets appropriate policy flags and wait for them to be set to ensure we've changed mode
-    /// </summary>
-    /// <param name="trackingMode">Tracking mode to set</param>
-    public void ChangeTrackingMode(TrackingOptimizationMode trackingMode)
-    {
-        if (_preventChangingTrackingMode) return;
-        
-        _trackingOptimization = trackingMode;
-        
-        if (_leapController == null) return;
-        
-        switch (trackingMode)
-        {
-        case TrackingOptimizationMode.Desktop:
-          _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_SCREENTOP);
-          _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
-          break;
-        case TrackingOptimizationMode.ScreenTop:
-          _leapController.SetPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_SCREENTOP);
-          _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
-          break;
-        case TrackingOptimizationMode.HMD:
-          _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_SCREENTOP);
-          _leapController.SetPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
-          break;
-        }
-    }
-
-    /// <summary>
-    /// Gets the current mode by polling policy flags
-    /// </summary>
-    public TrackingOptimizationMode GetTrackingMode()
-    {
-      if (_leapController == null) return _trackingOptimization;
-      
-      var screenTopPolicySet = _leapController.IsPolicySet(Controller.PolicyFlag.POLICY_OPTIMIZE_SCREENTOP);
-      var headMountedPolicySet = _leapController.IsPolicySet(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
-
-      var desktopMode = !screenTopPolicySet && !headMountedPolicySet;
-      if (desktopMode)
-      {
-        return TrackingOptimizationMode.Desktop;
-      }
-      
-      var headMountedMode = !screenTopPolicySet && headMountedPolicySet;
-      if (headMountedMode)
-      {
-        return TrackingOptimizationMode.HMD;
-      }
-      
-      var screenTopMode = screenTopPolicySet && !headMountedPolicySet;
-      if (screenTopMode)
-      {
-        return TrackingOptimizationMode.ScreenTop;
-      }
-
-      throw new Exception("Unknown tracking optimization mode");
-    }
 
     #endregion
 
@@ -538,13 +452,16 @@ namespace Leap.Unity {
       }
       #endif
     }
-    
+ 
     /// <summary>
-    /// Initializes the policy flags
+    /// Initializes Leap Motion policy flags.
     /// </summary>
-    protected virtual void initializeFlags()
-    {
-      ChangeTrackingMode(_trackingOptimization);
+    protected virtual void initializeFlags() {
+      if (_leapController == null) {
+        return;
+      }
+
+      _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_DEFAULT);
     }
 
     /// <summary>
@@ -556,7 +473,7 @@ namespace Leap.Unity {
         return;
       }
 
-      _leapController = new Controller(0, _serverNameSpace);
+      _leapController = new Controller();
       _leapController.Device += (s, e) => {
         if (_onDeviceSafe != null) {
           _onDeviceSafe(e.Device);
@@ -586,8 +503,10 @@ namespace Leap.Unity {
     /// </summary>
     protected void destroyController() {
       if (_leapController != null) {
+        if (_leapController.IsConnected) {
+          _leapController.ClearPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
+        }
         _leapController.StopConnection();
-        _leapController.Dispose();
         _leapController = null;
       }
     }

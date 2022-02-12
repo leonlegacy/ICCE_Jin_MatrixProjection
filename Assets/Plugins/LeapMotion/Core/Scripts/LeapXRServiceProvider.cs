@@ -38,6 +38,8 @@ namespace Leap.Unity {
       Transform
     }
 
+    [Header("Advanced")]
+
     [Tooltip("Allow manual adjustment of the Leap device's virtual offset and tilt. These "
            + "settings can be used to match the physical position and orientation of the "
            + "Leap Motion sensor on a tracked device it is mounted on (such as a VR "
@@ -234,7 +236,7 @@ namespace Leap.Unity {
         preCullCamera = GetComponent<Camera>();
       }
 
-      #if XR_LEGACY_INPUT_AVAILABLE
+      #if UNITY_2019_4_OR_NEWER
       if (GetComponent<UnityEngine.SpatialTracking.TrackedPoseDriver>() == null) {
         gameObject.AddComponent<UnityEngine.SpatialTracking.TrackedPoseDriver>().UseRelativeTransform = true;
       }
@@ -364,11 +366,11 @@ namespace Leap.Unity {
         // the pose delta from the "local" tracked pose to the actual camera
         // pose.
         if (!_trackingBaseDeltaPose.HasValue) {
-          _trackingBaseDeltaPose = _cachedCamera.transform.ToLocalPose().mul(
-                                      trackedPose.inverse());
+          _trackingBaseDeltaPose = _cachedCamera.transform.ToLocalPose()
+                                    * trackedPose.inverse;
         }
         // This way, we always track a scene-space tracked pose.
-        trackedPose = _trackingBaseDeltaPose.Value.mul(trackedPose);
+        trackedPose = _trackingBaseDeltaPose.Value * trackedPose;
       }
       else if (_deviceOffsetMode == DeviceOffsetMode.Transform) {
         trackedPose = deviceOrigin.ToPose();
@@ -408,12 +410,17 @@ namespace Leap.Unity {
     /// The POLICY_OPTIMIZE_HMD flag improves tracking for head-mounted devices.
     /// </summary>
     protected override void initializeFlags() {
-      ChangeTrackingMode(TrackingOptimizationMode.HMD);
+      if (_leapController == null) {
+        return;
+      }
+
+      // Optimize for head-mounted tracking if on head-mounted display.
+      _leapController.SetPolicy(Controller.PolicyFlag.POLICY_OPTIMIZE_HMD);
     }
 
     protected override void transformFrame(Frame source, Frame dest) {
-        LeapTransform leapTransform = GetWarpedMatrix(source.Timestamp);
-        dest.CopyFrom(source).Transform(leapTransform);
+      LeapTransform leapTransform = GetWarpedMatrix(source.Timestamp);
+      dest.CopyFrom(source).Transform(leapTransform);
     }
 
     #endregion
@@ -446,7 +453,7 @@ namespace Leap.Unity {
       }
 
       // Normalize the rotation Quaternion.
-      warpedRotation = warpedRotation.ToNormalized();
+      warpedRotation = Quaternion.Lerp(warpedRotation, Quaternion.identity, 0f);
 
       //Calculate the Current Pose
       Pose currentPose = Pose.identity;

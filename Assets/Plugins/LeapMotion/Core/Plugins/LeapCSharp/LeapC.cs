@@ -97,12 +97,7 @@ namespace LeapInternal {
     /// <summary>
     /// Allows streaming map points.
     /// </summary>
-    eLeapPolicyFlag_MapPoints = 0x00000080,
-    /// <summary>
-    /// The policy specifying whether to optimize tracking for screen-top device.
-    /// @since 5.0.0
-    /// </summary>
-    eLeapPolicyFlag_ScreenTop = 0x00000100,
+    eLeapPolicyFlag_MapPoints = 0x00000080
   };
 
   public enum eLeapDeviceStatus : uint {
@@ -508,14 +503,7 @@ namespace LeapInternal {
     public eLeapDeviceStatus status;
   }
 
- [StructLayout(LayoutKind.Sequential, Pack = 1)]
- public struct LEAP_DEVICE_STATUS_CHANGE_EVENT {
-    public LEAP_DEVICE_REF device;
-    public eLeapDeviceStatus last_status;
-    public eLeapDeviceStatus status;
- }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+  [StructLayout(LayoutKind.Sequential, Pack = 1)]
   public struct LEAP_DEVICE_FAILURE_EVENT {
     public eLeapDeviceStatus status;
     public IntPtr hDevice;
@@ -844,8 +832,8 @@ namespace LeapInternal {
     [DllImport("LeapC", EntryPoint = "LeapSetPolicyFlags")]
     public static extern eLeapRS SetPolicyFlags(IntPtr hConnection, UInt64 set, UInt64 clear);
 
-    [DllImport("LeapC", EntryPoint = "LeapSetPause")]
-    public static extern eLeapRS LeapSetPause(IntPtr hConnection, bool pause);
+    [DllImport("LeapC", EntryPoint = "LeapSetDeviceFlags")]
+    public static extern eLeapRS SetDeviceFlags(IntPtr hDevice, UInt64 set, UInt64 clear, out UInt64 prior);
 
     [DllImport("LeapC", EntryPoint = "LeapPollConnection")]
     public static extern eLeapRS PollConnection(IntPtr hConnection, UInt32 timeout, ref LEAP_CONNECTION_MESSAGE msg);

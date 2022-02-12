@@ -112,8 +112,7 @@ namespace Leap {
     public enum TestHandPose {
       HeadMountedA,
       HeadMountedB,
-      DesktopModeA,
-      ScreenTop
+      DesktopModeA
     }
 
     public static LeapTransform GetTestPoseLeftHandTransform(TestHandPose pose) {
@@ -133,14 +132,6 @@ namespace Leap {
                                 .Multiply(angleAxis(180f * Constants.DEG_TO_RAD, Vector.Up));
           transform.translation = new Vector(120f, 0f, -170f);
           break;
-        case TestHandPose.ScreenTop:
-          transform.rotation = angleAxis(0 * Constants.DEG_TO_RAD, Vector.Forward)
-                                .Multiply(angleAxis(140 * Constants.DEG_TO_RAD, Vector.Right))
-                                .Multiply(angleAxis(0 * Constants.DEG_TO_RAD, Vector.Up));
-          transform.translation = new Vector(-120f, 20f, -380f);
-          transform.scale = new Vector(1, 1, 1);
-          break;
-
       }
       return transform;
     }

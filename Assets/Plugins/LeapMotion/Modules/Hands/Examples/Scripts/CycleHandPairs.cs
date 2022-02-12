@@ -22,6 +22,14 @@ public class CycleHandPairs : MonoBehaviour {
       HandPool.EnableGroup(GroupNames[value]);
     }
   }
+  private KeyCode[] keyCodes = {
+         KeyCode.Alpha1,
+         KeyCode.Alpha2,
+         KeyCode.Alpha3,
+         KeyCode.Alpha4,
+         KeyCode.Alpha5,
+         KeyCode.Alpha6
+     };
 
   // Use this for initialization
   void Start () {
@@ -41,6 +49,14 @@ public class CycleHandPairs : MonoBehaviour {
       if (CurrentGroup > 0) {
         CurrentGroup--;
       }
+    }
+    for (int i = 0; i < keyCodes.Length; i++) {
+      if (Input.GetKeyDown(keyCodes[i])) {
+        HandPool.ToggleGroup(GroupNames[i]);
+      }
+    }
+    if(Input.GetKeyUp(KeyCode.Alpha0)){
+      disableAllGroups();
     }
   }
 
